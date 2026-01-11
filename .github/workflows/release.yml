@@ -38,14 +38,8 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-cargo-target-
 
-      - name: Install sccache
-        uses: actions-rs/sccache@v1
-        with:
-          version: latest
-
-      - name: Enable sccache
-        run: |
-          echo "RUSTC_WRAPPER=$(which sccache)" >> $GITHUB_ENV
+      # sccache action removed because actions-rs/sccache is not available on runners.
+      # Consider installing sccache manually per-run or using a maintained action.
 
       - name: Build release
         run: |
