@@ -22,6 +22,31 @@ jobs:
           toolchain: stable
           override: true
 
+      - name: Cache cargo registry and git
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+          key: ${{ runner.os }}-cargo-registry-${{ hashFiles('**/Cargo.lock') }}
+
+      - name: Cache target
+        uses: actions/cache@v4
+        with:
+          path: target
+          key: ${{ runner.os }}-cargo-target-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-cargo-target-
+
+      - name: Install sccache
+        uses: actions-rs/sccache@v1
+        with:
+          version: latest
+
+      - name: Enable sccache
+        run: |
+          echo "RUSTC_WRAPPER=$(which sccache)" >> $GITHUB_ENV
+
       - name: Build release
         run: |
           cargo build --release
@@ -41,33 +66,28 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Debug environment
+        run: |
+          echo "event_name=${{ github.event_name }}"
+          echo "ref=${{ github.ref }}"
+          echo "ref_name=${{ github.ref_name }}"
+          echo "sha=${{ github.sha }}"
+
       - name: Create artifacts dir
         run: mkdir -p artifacts
 
-      - name: Download Ubuntu artifact
+      - name: Download all artifacts
         uses: actions/download-artifact@v4
         with:
-          name: cii-ubuntu-latest
-          path: artifacts/
-
-      - name: Download Windows artifact
-        uses: actions/download-artifact@v4
-        with:
-          name: cii-windows-latest
-          path: artifacts/
-
-      - name: Download macOS artifact
-        uses: actions/download-artifact@v4
-        with:
-          name: cii-macos-latest
           path: artifacts/
 
       - name: List downloaded artifacts
-        run: ls -l artifacts || true
+        run: ls -la artifacts || true
 
       - name: Create GitHub Release and upload assets
         uses: softprops/action-gh-release@v1
         with:
+          tag_name: ${{ github.ref_name }}
           files: artifacts/**
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
